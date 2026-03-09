@@ -3,267 +3,269 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTX Quantum Terminal</title>
+    <title>HTX Terminal | Real-Time</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
     <style>
         :root {
-            --neon-blue: #00d2ff;
-            --neon-green: #39ff14;
-            --neon-red: #ff3131;
-            --dark-bg: #050505;
-            --glass: rgba(255, 255, 255, 0.05);
+            --bg: #000000;
+            --surface: #0a0a0a;
+            --border: #1f1f1f;
+            --text-main: #ededed;
+            --text-muted: #a1a1a1;
+            --accent: #ffffff;
+            --green: #22c55e;
+            --red: #ef4444;
         }
 
         body {
-            background: var(--dark-bg);
-            color: #fff;
-            font-family: 'Rajdhani', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar - Coin List */
+        .sidebar {
+            width: 350px;
+            border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            overflow-x: hidden;
+            background: var(--bg);
         }
 
-        /* Background Glow */
-        body::before {
-            content: '';
-            position: fixed;
-            top: -10%; left: -10%;
-            width: 40%; height: 40%;
-            background: radial-gradient(circle, rgba(0, 210, 255, 0.15) 0%, transparent 70%);
-            z-index: -1;
+        .search-container {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
         }
 
-        h1 {
-            font-family: 'Orbitron', sans-serif;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            color: var(--neon-blue);
-            text-shadow: 0 0 15px var(--neon-blue);
-            margin-bottom: 5px;
-        }
-
-        .terminal-container {
-            width: 90%;
-            max-width: 900px;
-            background: var(--glass);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-
-        .search-wrapper {
-            position: relative;
-            margin-bottom: 30px;
-        }
-
-        .search-box {
+        .search-bar {
             width: 100%;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid #333;
-            padding: 15px 20px;
-            border-radius: 50px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 10px 12px;
+            border-radius: 6px;
             color: white;
-            font-size: 1.1rem;
+            font-size: 14px;
             outline: none;
-            transition: 0.3s;
             box-sizing: border-box;
         }
 
-        .search-box:focus {
-            border-color: var(--neon-blue);
-            box-shadow: 0 0 10px var(--neon-blue);
+        .coin-list {
+            flex: 1;
+            overflow-y: auto;
         }
 
-        .live-monitor {
+        .coin-item {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px;
-            background: rgba(255,255,255,0.03);
-            border-radius: 15px;
-            margin-bottom: 25px;
-            border-left: 4px solid var(--neon-blue);
+            transition: background 0.1s;
         }
 
-        .active-symbol {
-            font-size: 1.5rem;
-            color: #888;
+        .coin-item:hover {
+            background: var(--surface);
         }
 
-        .active-symbol span {
-            color: #fff;
-            font-weight: bold;
-            font-family: 'Orbitron';
+        .coin-info b { font-size: 14px; letter-spacing: 0.5px; }
+        .coin-info span { font-size: 12px; color: var(--text-muted); display: block; }
+
+        /* Main Content - Price Display */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
         }
 
-        .price-now {
-            font-size: 4rem;
-            font-family: 'Orbitron';
-            transition: 0.2s;
+        .price-wrapper {
+            text-align: center;
         }
 
-        .up { color: var(--neon-green); text-shadow: 0 0 20px var(--neon-green); }
-        .down { color: var(--neon-red); text-shadow: 0 0 20px var(--neon-red); }
-
-        .coin-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-            gap: 12px;
-            max-height: 350px;
-            overflow-y: auto;
-            padding-right: 10px;
+        .symbol-badge {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
+
+        .big-price {
+            font-size: 80px;
+            font-weight: 700;
+            letter-spacing: -2px;
+            margin: 0;
+            transition: color 0.1s;
+        }
+
+        /* Status colors - No Glow */
+        .price-up { color: var(--green) !important; }
+        .price-down { color: var(--red) !important; }
 
         /* Custom Scrollbar */
-        .coin-grid::-webkit-scrollbar { width: 5px; }
-        .coin-grid::-webkit-scrollbar-thumb { background: var(--neon-blue); border-radius: 10px; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--border); }
 
-        .coin-card {
-            background: rgba(255,255,255,0.05);
-            padding: 15px;
-            text-align: center;
-            border-radius: 12px;
-            cursor: pointer;
-            border: 1px solid transparent;
-            transition: 0.3s;
+        .loader-overlay {
+            position: fixed;
+            inset: 0;
+            background: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
         }
-
-        .coin-card:hover {
-            background: rgba(0, 210, 255, 0.1);
-            border-color: var(--neon-blue);
-            transform: translateY(-3px);
-        }
-
-        .coin-card b { display: block; font-size: 1.1rem; margin-bottom: 5px; }
-        .coin-card span { font-size: 0.8rem; color: #666; }
-
-        .loader {
-            color: var(--neon-blue);
-            font-style: italic;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse { 50% { opacity: 0.3; } }
     </style>
 </head>
 <body>
 
-    <h1>HTX Live Terminal</h1>
-    <p style="color: #666; margin-bottom: 30px;">Direct WebSocket Feed • Zero Latency</p>
+    <div id="loader" class="loader-overlay">
+        <p style="font-size: 14px; color: var(--text-muted);">Syncing with HTX Mainframe...</p>
+    </div>
 
-    <div class="terminal-container">
-        
-        <div class="live-monitor">
-            <div class="active-symbol">TRACKING: <span id="cur-sym">BTC/USDT</span></div>
-            <div id="price-display" class="price-now">---</div>
+    <div class="sidebar">
+        <div class="search-container">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
+                <i data-lucide="layout-grid" style="width: 18px; color: var(--text-muted);"></i>
+                <span style="font-weight: 600; font-size: 14px;">MARKETS</span>
+            </div>
+            <input type="text" id="searchInput" class="search-bar" placeholder="Search 1000+ coins...">
         </div>
+        <div id="coinList" class="coin-list">
+            </div>
+    </div>
 
-        <div class="search-wrapper">
-            <input type="text" id="search" class="search-box" placeholder="Search Assets (e.g. SOL, SHIB, PEPE)...">
-        </div>
-
-        <div id="coin-grid" class="coin-grid">
-            <div class="loader">Accessing HTX Mainframe...</div>
+    <div class="main-content">
+        <div class="price-wrapper">
+            <div class="symbol-badge">
+                <i data-lucide="activity" style="width: 14px;"></i>
+                <span id="activeSymText">Select a pair</span>
+            </div>
+            <h1 id="priceDisplay" class="big-price">0.00</h1>
+            <p id="pairSubtitle" style="color: var(--text-muted); font-size: 14px; margin-top: 10px;">Waiting for data stream</p>
         </div>
     </div>
 
     <script>
-        const priceDisplay = document.getElementById('price-display');
-        const symbolDisplay = document.getElementById('cur-sym');
-        const coinGrid = document.getElementById('coin-grid');
-        const searchInput = document.getElementById('search');
+        const coinListEl = document.getElementById('coinList');
+        const searchInput = document.getElementById('searchInput');
+        const priceDisplay = document.getElementById('priceDisplay');
+        const activeSymText = document.getElementById('activeSymText');
+        const loader = document.getElementById('loader');
 
+        let allCoins = [];
         let ws;
-        let allPairs = [];
 
-        // 1. Fetching Pairs with a fallback to avoid CORS error
-        async function loadMarketData() {
+        // 1. Fetch all coins using HTX Ticker (Sab ke sab jo support hote hain)
+        async function fetchMarkets() {
             try {
-                // HTX direct link (if CORS allows)
-                const res = await fetch('https://api.huobi.pro/market/tickers');
-                const json = await res.json();
+                const response = await fetch('https://api.huobi.pro/market/tickers');
+                const result = await response.json();
                 
-                // Hum sirf USDT pairs nikalenge
-                allPairs = json.data
-                    .filter(item => item.symbol.endsWith('usdt'))
-                    .map(item => item.symbol);
+                // Hum sirf USDT pairs filter karenge
+                allCoins = result.data.filter(c => c.symbol.endsWith('usdt'));
                 
-                renderList(allPairs);
-                // By default BTC start karein
-                startStreaming('btcusdt');
-            } catch (e) {
-                // Fallback list agar API fail ho jaye
-                allPairs = ['btcusdt', 'ethusdt', 'solusdt', 'dogeusdt', 'adausdt', 'xrpusdt', 'dotusdt', 'shibusdt', 'pepeusdt', 'linkusdt'];
-                renderList(allPairs);
-                startStreaming('btcusdt');
+                renderCoins(allCoins);
+                loader.style.display = 'none';
+                
+                // Default start with BTC
+                subscribe('btcusdt');
+                lucide.createIcons(); // Initialize icons
+            } catch (err) {
+                console.error("API Error", err);
+                document.querySelector('#loader p').innerText = "CORS Error. Use a proxy or local server.";
             }
         }
 
-        function renderList(list) {
-            coinGrid.innerHTML = '';
-            list.forEach(sym => {
-                const base = sym.replace('usdt', '').toUpperCase();
-                const card = document.createElement('div');
-                card.className = 'coin-card';
-                card.innerHTML = `<b>${base}</b><span>USDT</span>`;
-                card.onclick = () => startStreaming(sym);
-                coinGrid.appendChild(card);
+        // 2. Render List
+        function renderCoins(list) {
+            coinListEl.innerHTML = '';
+            list.forEach(coin => {
+                const base = coin.symbol.replace('usdt', '').toUpperCase();
+                const div = document.createElement('div');
+                div.className = 'coin-item';
+                div.innerHTML = `
+                    <div class="coin-info">
+                        <b>${base}</b>
+                        <span>HTX / USDT</span>
+                    </div>
+                    <i data-lucide="chevron-right" style="width:14px; color:#333;"></i>
+                `;
+                div.onclick = () => subscribe(coin.symbol);
+                coinListEl.appendChild(div);
             });
+            lucide.createIcons();
         }
 
+        // 3. Search Logic
         searchInput.oninput = (e) => {
-            const term = e.target.value.toLowerCase();
-            const filtered = allPairs.filter(s => s.includes(term));
-            renderList(filtered);
+            const val = e.target.value.toLowerCase();
+            const filtered = allCoins.filter(c => c.symbol.includes(val));
+            renderCoins(filtered);
         };
 
-        function startStreaming(symbol) {
+        // 4. WebSocket Subscription
+        function subscribe(symbol) {
             if (ws) ws.close();
-
-            symbolDisplay.innerText = `${symbol.replace('usdt', '').toUpperCase()} / USDT`;
-            priceDisplay.innerText = "LOADING";
-            priceDisplay.className = "price-now";
+            
+            activeSymText.innerText = symbol.toUpperCase();
+            priceDisplay.innerText = "---";
+            priceDisplay.className = "big-price";
 
             ws = new WebSocket("wss://api.huobi.pro/ws");
-            let lastPrice = 0;
+            let prevPrice = 0;
 
             ws.onopen = () => {
-                ws.send(JSON.stringify({ "sub": `market.${symbol}.detail`, "id": "req1" }));
+                ws.send(JSON.stringify({ "sub": `market.${symbol}.detail`, "id": "sub1" }));
             };
 
             ws.onmessage = (event) => {
                 const reader = new FileReader();
                 reader.onload = () => {
-                    const decoded = pako.ungzip(new Uint8Array(reader.result), { to: 'string' });
-                    const data = JSON.parse(decoded);
-
+                    const data = JSON.parse(pako.ungzip(new Uint8Array(reader.result), { to: 'string' }));
+                    
                     if (data.ping) ws.send(JSON.stringify({ pong: data.ping }));
 
                     if (data.tick) {
                         const price = data.tick.close;
-                        // Precision handling
-                        const formattedPrice = price < 0.1 ? price.toFixed(8) : price.toLocaleString(undefined, {minimumFractionDigits: 2});
+                        const formatted = price < 1 ? price.toFixed(6) : price.toLocaleString(undefined, {minimumFractionDigits: 2});
                         
-                        priceDisplay.innerText = `$${formattedPrice}`;
+                        priceDisplay.innerText = formatted;
+
+                        // Next.js style color flashing
+                        if (price > prevPrice) {
+                            priceDisplay.classList.add('price-up');
+                            priceDisplay.classList.remove('price-down');
+                        } else if (price < prevPrice) {
+                            priceDisplay.classList.add('price-down');
+                            priceDisplay.classList.remove('price-up');
+                        }
                         
-                        if (price > lastPrice) priceDisplay.className = "price-now up";
-                        else if (price < lastPrice) priceDisplay.className = "price-now down";
-                        
-                        lastPrice = price;
+                        prevPrice = price;
                     }
                 };
                 reader.readAsArrayBuffer(event.data);
             };
         }
 
-        loadMarketData();
+        fetchMarkets();
     </script>
 </body>
 </html>
