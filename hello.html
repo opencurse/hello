@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTX Elite Terminal Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@500;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #000; --sidebar: #050505; --border: #1a1a1a; --text: #fff; --muted: #666; --green: #10b981; --red: #ef4444; }
+        * { box-sizing: border-box; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+
+        /* Sidebar */
+        .sidebar { width: 300px; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--sidebar); z-index: 10; }
+        .search-container { padding: 20px; border-bottom: 1px solid var(--border); }
+        .search-bar { width: 100%; background: #0f0f0f; border: 1px solid var(--border); padding: 10px 12px; border-radius: 6px; color: white; font-size: 13px; outline: none; }
+        .coin-list { flex: 1; overflow-y: auto; }
+        .coin-item { padding: 12px 20px; border-bottom: 1px solid #111; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+        .coin-item:hover { background: #0f0f0f; }
+
+        /* Main Content */
+        .main { flex: 1; display: flex; flex-direction: column; background: #000; }
+        
+        /* Header/Ticker Bar */
+        .ticker-bar { height: 80px; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 30px; justify-content: space-between; }
+        .active-info { display: flex; align-items: center; gap: 20px; }
+        .active-sym { font-weight: 700; font-size: 18px; letter-spacing: 1px; }
+        .price-now { font-family: 'Geist Mono', monospace; font-size: 28px; font-weight: 700; transition: 0.1s; }
+        .stats-24h { display: flex; gap: 25px; font-size: 12px; }
+        .stat-box span { color: var(--muted); display: block; margin-bottom: 4px; }
+
+        /* Chart Area */
+        .chart-container { flex: 1; position: relative; width: 100%; background: #000; }
+        #tradingview_chart { height: 100% !important; width: 100% !important; }
+
+        .up { color: var(--green); }
+        .down { color: var(--red); }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #222; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="search-container">
+            <div style="font-size: 11px; color: var(--muted); margin-bottom: 12px; letter-spacing: 1px; display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="bar-chart-3" style="width:14px"></i> MARKET SELECTION
+            </div>
+            <input type="text" id="search" class="search-bar" placeholder="Search pairs...">
+        </div>
+        <div id="coin-list" class="coin-list"></div>
+    </div>
+
+    <div class="main">
+        <div class="ticker-bar">
+            <div class="active-info">
+                <div class="active-sym" id="target-sym">BTC/USDT</div>
+                <div class="price-now" id="live-price">0.00</div>
+            </div>
+            <div class="stats-24h">
+                <div class="stat-box"><span>24h Change</span><b id="pc" class="up">--</b></div>
+                <div class="stat-box"><span>High</span><b id="ph">--</b></div>
+                <div class="stat-box"><span>Low</span><b id="pl">--</b></div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <div id="tradingview_chart"></div>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script>
+        const listEl = document.getElementById('coin-list');
+        const priceEl = document.getElementById('live-price');
+        const targetEl = document.getElementById('target-sym');
+        
+        let allPairs = [];
+        let activeWs;
+
+        // Load Chart
+        function loadChart(symbol) {
+            new TradingView.widget({
+                "autosize": true,
+                "symbol": `HUOBI:${symbol.toUpperCase()}`,
+                "interval": "60",
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "1",
+                "locale": "en",
+                "toolbar_bg": "#000000",
+                "enable_publishing": false,
+                "hide_top_toolbar": false,
+                "hide_legend": false,
+                "save_image": false,
+                "container_id": "tradingview_chart",
+                "backgroundColor": "rgba(0, 0, 0, 1)",
+                "gridColor": "rgba(26, 26, 26, 1)",
+            });
+        }
+
+        // Init List via WS
+        const initWs = new WebSocket("wss://api.huobi.pro/ws");
+        initWs.onopen = () => initWs.send(JSON.stringify({ "sub": "market.tickers", "id": "list" }));
+        initWs.onmessage = (e) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const res = JSON.parse(pako.ungzip(new Uint8Array(reader.result), { to: 'string' }));
+                if (res.data && allPairs.length === 0) {
+                    allPairs = res.data.filter(x => x.symbol.endsWith('usdt'));
+                    renderList(allPairs);
+                    startTerminal('btcusdt');
+                    initWs.close();
+                }
+            };
+            reader.readAsArrayBuffer(e.data);
+        };
+
+        function renderList(items) {
+            listEl.innerHTML = '';
+            items.forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'coin-item';
+                div.innerHTML = `<b>${c.symbol.replace('usdt','').toUpperCase()}</b><i data-lucide="chevron-right" style="width:12px;color:#222"></i>`;
+                div.onclick = () => startTerminal(c.symbol);
+                listEl.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        document.getElementById('search').oninput = (e) => {
+            const val = e.target.value.toLowerCase();
+            renderList(allPairs.filter(p => p.symbol.includes(val)));
+        };
+
+        function startTerminal(sym) {
+            if (activeWs) activeWs.close();
+            targetEl.innerText = sym.toUpperCase();
+            loadChart(sym);
+
+            activeWs = new WebSocket("wss://api.huobi.pro/ws");
+            let lastP = 0;
+
+            activeWs.onopen = () => activeWs.send(JSON.stringify({ "sub": `market.${sym}.detail`, "id": "detail" }));
+            activeWs.onmessage = (e) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const data = JSON.parse(pako.ungzip(new Uint8Array(reader.result), { to: 'string' }));
+                    if (data.ping) activeWs.send(JSON.stringify({ pong: data.ping }));
+                    if (data.tick) {
+                        const t = data.tick;
+                        priceEl.innerText = t.close.toLocaleString();
+                        priceEl.className = t.close > lastP ? "price-now up" : "price-now down";
+                        
+                        // 24h Stats
+                        const change = ((t.close - t.open) / t.open * 100).toFixed(2);
+                        document.getElementById('pc').innerText = `${change}%`;
+                        document.getElementById('pc').className = change >= 0 ? "up" : "down";
+                        document.getElementById('ph').innerText = t.high.toLocaleString();
+                        document.getElementById('pl').innerText = t.low.toLocaleString();
+                        lastP = t.close;
+                    }
+                };
+                reader.readAsArrayBuffer(e.data);
+            };
+        }
+    </script>
+</body>
+</html>
