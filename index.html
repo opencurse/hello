@@ -3,298 +3,265 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTX Elite | Institutional Terminal</title>
+    <title>HTX Elite Terminal | Institutional Grade</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
     <style>
         :root {
             --bg: #000000;
-            --sidebar: #09090b;
-            --card: #0c0c0e;
-            --border: #1f1f23;
-            --accent: #ffffff;
-            --muted: #a1a1aa;
-            --green: #10b981;
-            --red: #ef4444;
-            --font-main: 'Inter', sans-serif;
+            --sidebar: #080808;
+            --surface: #0c0c0c;
+            --border: #1a1a1a;
+            --text: #ffffff;
+            --muted: #71717a;
+            --green: #00ff9d; /* Pure Terminal Green */
+            --red: #ff3b3b;   /* Pure Terminal Red */
             --font-mono: 'JetBrains Mono', monospace;
         }
 
-        * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
-        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body { 
             background: var(--bg); 
-            color: var(--accent); 
-            font-family: var(--font-main); 
-            margin: 0; 
+            color: var(--text); 
+            font-family: 'Inter', sans-serif; 
             height: 100vh; 
-            overflow: hidden;
-            display: flex;
+            display: flex; 
+            overflow: hidden; 
         }
 
-        /* Mobile Blocker */
-        #mobile-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: #000;
-            z-index: 9999;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 40px;
+        /* Desktop Gatekeeper */
+        #mobile-block {
+            display: none; position: fixed; inset: 0; background: #000; z-index: 1000;
+            flex-direction: column; align-items: center; justify-content: center; text-align: center;
         }
+        @media (max-width: 1100px) { #mobile-block { display: flex; } }
 
-        @media (max-width: 1024px) {
-            #mobile-overlay { display: flex; }
+        /* Sidebar & Navigation */
+        .panel { border-right: 1px solid var(--border); background: var(--sidebar); display: flex; flex-direction: column; }
+        .markets-panel { width: 260px; }
+        
+        .header-box { padding: 20px; border-bottom: 1px solid var(--border); }
+        .brand { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--muted); margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        .dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; }
+
+        .search-wrap { background: #111; border: 1px solid var(--border); border-radius: 4px; padding: 8px 12px; display: flex; align-items: center; }
+        .search-wrap input { background: transparent; border: none; color: white; outline: none; font-size: 12px; width: 100%; }
+
+        .market-list { flex: 1; overflow-y: auto; }
+        .market-item { 
+            padding: 10px 20px; display: flex; justify-content: space-between; 
+            cursor: pointer; border-bottom: 1px solid #0a0a0a; font-family: var(--font-mono); font-size: 12px;
         }
-
-        /* Sidebar Styling */
-        .sidebar {
-            width: 280px;
-            background: var(--sidebar);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .brand {
-            padding: 24px;
-            font-weight: 700;
-            font-size: 14px;
-            letter-spacing: 2px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .search-area { padding: 16px; }
-        .search-input {
-            width: 100%;
-            background: #141416;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 10px 12px;
-            color: white;
-            font-size: 12px;
-            outline: none;
-        }
-
-        .market-list {
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        .market-item {
-            padding: 12px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            border-bottom: 1px solid #0f0f11;
-            transition: background 0.2s ease;
-        }
-
-        .market-item:hover { background: #141416; }
-        .market-item span { font-family: var(--font-mono); font-size: 12px; font-weight: 500; }
+        .market-item:hover { background: #111; }
 
         /* Main Viewport */
-        .viewport { flex: 1; display: flex; flex-direction: column; }
-
-        .top-nav {
-            height: 64px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            padding: 0 24px;
-            justify-content: space-between;
+        .viewport { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        
+        .ticker-ribbon { 
+            height: 60px; border-bottom: 1px solid var(--border); 
+            display: flex; align-items: center; padding: 0 25px; gap: 40px;
         }
+        .active-pair { font-size: 16px; font-weight: 700; }
+        .main-price { font-family: var(--font-mono); font-size: 22px; font-weight: 700; min-width: 140px; }
 
-        .live-info { display: flex; align-items: baseline; gap: 16px; }
-        #target-sym { font-weight: 700; font-size: 18px; }
-        #live-price { font-family: var(--font-mono); font-size: 24px; font-weight: 700; }
+        .stat-group { display: flex; flex-direction: column; }
+        .stat-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-value { font-family: var(--font-mono); font-size: 12px; margin-top: 2px; }
 
-        .metrics { display: flex; gap: 40px; }
-        .metric-group { display: flex; flex-direction: column; }
-        .metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
-        .metric-value { font-family: var(--font-mono); font-size: 13px; font-weight: 600; }
+        .stage { flex: 1; display: flex; }
+        .chart-area { flex: 3; position: relative; border-right: 1px solid var(--border); }
 
-        /* Chart Wrapper */
-        .chart-frame {
-            flex: 1;
-            background: #000;
-            padding: 8px;
-        }
+        /* Order Book Style */
+        .orderbook { width: 300px; background: var(--sidebar); display: flex; flex-direction: column; font-family: var(--font-mono); font-size: 11px; }
+        .ob-header { padding: 12px 15px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 10px; font-weight: 600; }
+        .ob-row { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 4px 15px; position: relative; }
+        .ob-list { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+        .ob-bar { position: absolute; right: 0; top: 0; bottom: 0; opacity: 0.15; z-index: 0; pointer-events: none; }
 
-        #tv_container {
-            height: 100%;
-            width: 100%;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        /* Utilities */
+        /* Utility Classes */
         .up { color: var(--green); }
         .down { color: var(--red); }
-        
-        .pulse {
-            width: 6px;
-            height: 6px;
-            background: var(--green);
-            border-radius: 50%;
-            display: inline-block;
-        }
-
-        ::-webkit-scrollbar { width: 3px; }
-        ::-webkit-scrollbar-thumb { background: #333; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #222; }
     </style>
 </head>
 <body>
 
-    <div id="mobile-overlay">
-        <i data-lucide="monitor" style="width: 48px; height: 48px; margin-bottom: 20px;"></i>
-        <h2 style="font-weight: 600;">Desktop Access Only</h2>
-        <p style="color: var(--muted); font-size: 14px; max-width: 250px;">Elite Terminal Pro requires a wider viewport for professional analysis. Please switch to a desktop browser.</p>
+    <div id="mobile-block">
+        <i data-lucide="terminal" style="margin-bottom:15px"></i>
+        <p>TERMINAL RESTRICTED TO DESKTOP VIEWPORTS</p>
+        <small style="color:var(--muted); margin-top:10px">Resolution > 1100px required</small>
     </div>
 
-    <aside class="sidebar">
-        <div class="brand">
-            <div class="pulse"></div> HTX ELITE PRO
+    <aside class="panel markets-panel">
+        <div class="header-box">
+            <div class="brand"><div class="dot"></div> HTX TERMINAL PRO</div>
+            <div class="search-wrap">
+                <input type="text" id="marketSearch" placeholder="SEARCH ASSETS...">
+            </div>
         </div>
-        <div class="search-area">
-            <input type="text" id="search" class="search-input" placeholder="Search markets...">
-        </div>
-        <div id="market-list" class="market-list"></div>
+        <div id="coin-list" class="market-list"></div>
     </aside>
 
     <main class="viewport">
-        <header class="top-nav">
-            <div class="live-info">
-                <span id="target-sym">BTC/USDT</span>
-                <span id="live-price">---</span>
-            </div>
+        <header class="ticker-ribbon">
+            <div class="active-pair" id="cur-sym">BTC/USDT</div>
+            <div class="main-price" id="cur-price">0.000000</div>
             
-            <div class="metrics">
-                <div class="metric-group">
-                    <span class="metric-label">24h Change</span>
-                    <span id="pc" class="metric-value">--</span>
-                </div>
-                <div class="metric-group">
-                    <span class="metric-label">24h High</span>
-                    <span id="ph" class="metric-value">--</span>
-                </div>
-                <div class="metric-group">
-                    <span class="metric-label">24h Low</span>
-                    <span id="pl" class="metric-value">--</span>
-                </div>
+            <div class="stat-group">
+                <span class="stat-label">Change %</span>
+                <span class="stat-value" id="cur-change">0.00%</span>
+            </div>
+            <div class="stat-group">
+                <span class="stat-label">24h High</span>
+                <span class="stat-value" id="cur-high">0.00</span>
+            </div>
+            <div class="stat-group">
+                <span class="stat-label">24h Low</span>
+                <span class="stat-value" id="cur-low">0.00</span>
             </div>
         </header>
 
-        <section class="chart-frame">
-            <div id="tv_container"></div>
+        <section class="stage">
+            <div class="chart-area" id="chart-mount"></div>
+            
+            <div class="orderbook">
+                <div class="ob-header">ORDER BOOK (LIVE)</div>
+                <div class="ob-list" id="asks-list" style="justify-content: flex-end;"></div>
+                <div style="padding: 10px 15px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); font-weight: 700;" id="mid-price">---</div>
+                <div class="ob-list" id="bids-list"></div>
+            </div>
         </section>
     </main>
 
     <script>
-        const marketList = document.getElementById('market-list');
-        const priceEl = document.getElementById('live-price');
-        let allMarkets = [];
-        let socket;
+        let allPairs = [];
+        let activeWs;
+        let bookWs;
 
-        function initChart(symbol) {
+        const formatPrice = (val) => {
+            if (!val) return "0.00";
+            return Number(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 });
+        };
+
+        function renderChart(symbol) {
             new TradingView.widget({
                 "autosize": true,
                 "symbol": `HUOBI:${symbol.toUpperCase()}`,
                 "interval": "60",
-                "timezone": "Etc/UTC",
                 "theme": "dark",
                 "style": "1",
-                "locale": "en",
+                "container_id": "chart-mount",
+                "toolbar_bg": "#000000",
                 "enable_publishing": false,
-                "hide_side_toolbar": false,
-                "allow_symbol_change": true,
-                "container_id": "tv_container",
+                "hide_top_toolbar": true, // Removes search and clutter
+                "save_image": false,
                 "backgroundColor": "#000000",
-                "gridColor": "rgba(42, 46, 57, 0.06)",
-                "details": false,
-                "hotlist": false,
-                "calendar": false,
-                "show_popup_button": true,
-                "popup_width": "1000",
-                "popup_height": "650"
+                "gridColor": "#0c0c0c",
+                "studies": ["MASimple@tv-basicstudies"]
             });
         }
 
-        // Fetch initial market data
-        const bootSocket = new WebSocket("wss://api.huobi.pro/ws");
-        bootSocket.onopen = () => bootSocket.send(JSON.stringify({ "sub": "market.tickers", "id": "init" }));
-        bootSocket.onmessage = async (e) => {
-            const text = pako.ungzip(await e.data.arrayBuffer(), { to: 'string' });
-            const res = JSON.parse(text);
-            
-            if (res.data && allMarkets.length === 0) {
-                allMarkets = res.data.filter(x => x.symbol.endsWith('usdt'));
-                renderMarkets(allMarkets);
-                switchMarket('btcusdt');
-                bootSocket.close();
+        // Initialize Market Data
+        const initWs = new WebSocket("wss://api.huobi.pro/ws");
+        initWs.onopen = () => initWs.send(JSON.stringify({ "sub": "market.tickers", "id": "init" }));
+        initWs.onmessage = async (e) => {
+            const data = JSON.parse(pako.ungzip(await e.data.arrayBuffer(), { to: 'string' }));
+            if (data.data && allPairs.length === 0) {
+                // Filters both USDT and USDC
+                allPairs = data.data.filter(x => x.symbol.endsWith('usdt') || x.symbol.endsWith('usdc'));
+                updateList(allPairs);
+                loadPair('btcusdt');
+                initWs.close();
             }
         };
 
-        function renderMarkets(data) {
-            marketList.innerHTML = '';
-            data.slice(0, 100).forEach(m => {
+        function updateList(items) {
+            const list = document.getElementById('coin-list');
+            list.innerHTML = '';
+            items.forEach(c => {
                 const row = document.createElement('div');
                 row.className = 'market-item';
-                const base = m.symbol.replace('usdt', '').toUpperCase();
-                row.innerHTML = `<span>${base}</span><span style="color:var(--muted)">USDT</span>`;
-                row.onclick = () => switchMarket(m.symbol);
-                marketList.appendChild(row);
+                const base = c.symbol.replace(/usdt|usdc/, '').toUpperCase();
+                const quote = c.symbol.includes('usdc') ? 'USDC' : 'USDT';
+                row.innerHTML = `<span>${base}</span><span style="color:var(--muted)">${quote}</span>`;
+                row.onclick = () => loadPair(c.symbol);
+                list.appendChild(row);
             });
         }
 
-        async function switchMarket(sym) {
-            if (socket) socket.close();
-            document.getElementById('target-sym').innerText = sym.toUpperCase();
-            initChart(sym);
+        function loadPair(sym) {
+            if (activeWs) activeWs.close();
+            if (bookWs) bookWs.close();
 
-            socket = new WebSocket("wss://api.huobi.pro/ws");
-            let lastPrice = 0;
-
-            socket.onopen = () => socket.send(JSON.stringify({ "sub": `market.${sym}.detail`, "id": "detail" }));
-            socket.onmessage = async (e) => {
-                const text = pako.ungzip(await e.data.arrayBuffer(), { to: 'string' });
-                const data = JSON.parse(text);
-
-                if (data.ping) socket.send(JSON.stringify({ pong: data.ping }));
-                if (data.tick) {
-                    const t = data.tick;
-                    priceEl.innerText = t.close.toFixed(2);
-                    priceEl.className = t.close >= lastPrice ? 'up' : 'down';
+            document.getElementById('cur-sym').innerText = sym.toUpperCase();
+            renderChart(sym);
+            
+            // Connect Main Ticker
+            activeWs = new WebSocket("wss://api.huobi.pro/ws");
+            activeWs.onopen = () => activeWs.send(JSON.stringify({ "sub": `market.${sym}.detail`, "id": "dt" }));
+            activeWs.onmessage = async (e) => {
+                const res = JSON.parse(pako.ungzip(await e.data.arrayBuffer(), { to: 'string' }));
+                if (res.ping) activeWs.send(JSON.stringify({ pong: res.ping }));
+                if (res.tick) {
+                    const t = res.tick;
+                    const priceNode = document.getElementById('cur-price');
+                    const oldPrice = parseFloat(priceNode.innerText.replace(/,/g, ''));
+                    priceNode.innerText = formatPrice(t.close);
+                    priceNode.className = t.close >= oldPrice ? 'main-price up' : 'main-price down';
                     
                     const change = ((t.close - t.open) / t.open * 100).toFixed(2);
-                    document.getElementById('pc').innerText = `${change > 0 ? '+' : ''}${change}%`;
-                    document.getElementById('pc').className = `metric-value ${change >= 0 ? 'up' : 'down'}`;
-                    document.getElementById('ph').innerText = t.high.toFixed(2);
-                    document.getElementById('pl').innerText = t.low.toFixed(2);
-                    
-                    lastPrice = t.close;
+                    document.getElementById('cur-change').innerText = `${change}%`;
+                    document.getElementById('cur-change').className = `stat-value ${change >= 0 ? 'up' : 'down'}`;
+                    document.getElementById('cur-high').innerText = formatPrice(t.high);
+                    document.getElementById('cur-low').innerText = formatPrice(t.low);
+                    document.getElementById('mid-price').innerText = formatPrice(t.close);
                 }
+            };
+
+            // Connect Orderbook (Step0 = max depth precision)
+            bookWs = new WebSocket("wss://api.huobi.pro/ws");
+            bookWs.onopen = () => bookWs.send(JSON.stringify({ "sub": `market.${sym}.depth.step0`, "id": "ob" }));
+            bookWs.onmessage = async (e) => {
+                const res = JSON.parse(pako.ungzip(await e.data.arrayBuffer(), { to: 'string' }));
+                if (res.tick) renderOrderBook(res.tick);
             };
         }
 
-        document.getElementById('search').oninput = (e) => {
+        function renderOrderBook(data) {
+            const renderRows = (containerId, entries, colorClass) => {
+                const container = document.getElementById(containerId);
+                container.innerHTML = '';
+                const maxVol = Math.max(...entries.map(e => e[1]));
+                
+                entries.slice(0, 15).forEach(entry => {
+                    const price = entry[0];
+                    const amount = entry[1];
+                    const percent = (amount / maxVol * 100);
+                    const row = document.createElement('div');
+                    row.className = 'ob-row';
+                    row.innerHTML = `
+                        <span class="${colorClass}">${formatPrice(price)}</span>
+                        <span>${amount.toFixed(4)}</span>
+                        <div class="ob-bar" style="width:${percent}%; background:${colorClass === 'up' ? 'var(--green)' : 'var(--red)'}"></div>
+                    `;
+                    container.appendChild(row);
+                });
+            };
+
+            renderRows('asks-list', data.asks.reverse(), 'down');
+            renderRows('bids-list', data.bids, 'up');
+        }
+
+        document.getElementById('marketSearch').oninput = (e) => {
             const val = e.target.value.toLowerCase();
-            renderMarkets(allMarkets.filter(p => p.symbol.includes(val)));
+            updateList(allPairs.filter(p => p.symbol.includes(val)));
         };
 
-        // Initialize Icons
         lucide.createIcons();
     </script>
 </body>
