@@ -2,169 +2,300 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HTX Pro Terminal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTX Elite | Institutional Terminal</title>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@600&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
     <style>
-        :root { --bg: #000; --surface: #0a0a0a; --border: #1a1a1a; --text: #fff; --muted: #888; --green: #10b981; --red: #ef4444; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; flex-direction: row; }
-
-        /* Sidebar - PC par side mein, Mobile par niche */
-        .sidebar { width: 300px; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--bg); z-index: 100; flex-shrink: 0; }
-        .search-box { padding: 15px; border-bottom: 1px solid var(--border); }
-        .search-input { width: 100%; background: var(--surface); border: 1px solid var(--border); padding: 10px; border-radius: 8px; color: #fff; font-size: 14px; outline: none; }
-        .coin-list { flex: 1; overflow-y: auto; }
-        .coin-item { padding: 12px 20px; border-bottom: 1px solid #0d0d0d; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
-        .coin-item:active { background: #111; }
-
-        /* Main Section */
-        .main { flex: 1; display: flex; flex-direction: column; width: 100%; position: relative; }
-        .header { padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--bg); }
-        .price-section { display: flex; flex-direction: column; }
-        .sym { font-size: 14px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-        .price { font-family: 'Geist Mono', monospace; font-size: 24px; font-weight: 700; margin-top: 4px; }
-        
-        .stats-grid { display: flex; gap: 15px; text-align: right; }
-        .stat-item span { display: block; font-size: 10px; color: var(--muted); text-transform: uppercase; }
-        .stat-item b { font-size: 12px; }
-
-        /* Chart Area */
-        .chart-container { flex: 1; background: #000; position: relative; }
-
-        /* Responsive Logic */
-        @media (max-width: 768px) {
-            body { flex-direction: column; }
-            .sidebar { width: 100%; height: 40%; border-right: none; border-top: 1px solid var(--border); }
-            .main { height: 60%; }
-            .header { padding: 10px 15px; }
-            .price { font-size: 20px; }
-            .stats-grid { gap: 10px; }
-            .stat-item b { font-size: 11px; }
-            .sidebar-hide { display: none; } /* Mobile par faltu chize hide karne ke liye */
+        :root {
+            --bg: #000000;
+            --sidebar: #09090b;
+            --card: #0c0c0e;
+            --border: #1f1f23;
+            --accent: #ffffff;
+            --muted: #a1a1aa;
+            --green: #10b981;
+            --red: #ef4444;
+            --font-main: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
         }
 
+        * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+        
+        body { 
+            background: var(--bg); 
+            color: var(--accent); 
+            font-family: var(--font-main); 
+            margin: 0; 
+            height: 100vh; 
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* Mobile Blocker */
+        #mobile-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 9999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px;
+        }
+
+        @media (max-width: 1024px) {
+            #mobile-overlay { display: flex; }
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 280px;
+            background: var(--sidebar);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand {
+            padding: 24px;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .search-area { padding: 16px; }
+        .search-input {
+            width: 100%;
+            background: #141416;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 10px 12px;
+            color: white;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .market-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .market-item {
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            border-bottom: 1px solid #0f0f11;
+            transition: background 0.2s ease;
+        }
+
+        .market-item:hover { background: #141416; }
+        .market-item span { font-family: var(--font-mono); font-size: 12px; font-weight: 500; }
+
+        /* Main Viewport */
+        .viewport { flex: 1; display: flex; flex-direction: column; }
+
+        .top-nav {
+            height: 64px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            justify-content: space-between;
+        }
+
+        .live-info { display: flex; align-items: baseline; gap: 16px; }
+        #target-sym { font-weight: 700; font-size: 18px; }
+        #live-price { font-family: var(--font-mono); font-size: 24px; font-weight: 700; }
+
+        .metrics { display: flex; gap: 40px; }
+        .metric-group { display: flex; flex-direction: column; }
+        .metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+        .metric-value { font-family: var(--font-mono); font-size: 13px; font-weight: 600; }
+
+        /* Chart Wrapper */
+        .chart-frame {
+            flex: 1;
+            background: #000;
+            padding: 8px;
+        }
+
+        #tv_container {
+            height: 100%;
+            width: 100%;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        /* Utilities */
         .up { color: var(--green); }
         .down { color: var(--red); }
+        
+        .pulse {
+            width: 6px;
+            height: 6px;
+            background: var(--green);
+            border-radius: 50%;
+            display: inline-block;
+        }
+
         ::-webkit-scrollbar { width: 3px; }
-        ::-webkit-scrollbar-thumb { background: #222; }
+        ::-webkit-scrollbar-thumb { background: #333; }
     </style>
 </head>
 <body>
 
-    <div class="main">
-        <div class="header">
-            <div class="price-section">
-                <div class="sym" id="target-sym">BTC/USDT</div>
-                <div class="price" id="live-price">--</div>
-            </div>
-            <div class="stats-grid">
-                <div class="stat-item"><span>24h %</span><b id="pc">--</b></div>
-                <div class="stat-item sidebar-hide"><span>High</span><b id="ph">--</b></div>
-                <div class="stat-item"><span>Low</span><b id="pl">--</b></div>
-            </div>
-        </div>
-        <div class="chart-container">
-            <div id="tv-chart" style="height: 100%; width: 100%;"></div>
-        </div>
+    <div id="mobile-overlay">
+        <i data-lucide="monitor" style="width: 48px; height: 48px; margin-bottom: 20px;"></i>
+        <h2 style="font-weight: 600;">Desktop Access Only</h2>
+        <p style="color: var(--muted); font-size: 14px; max-width: 250px;">Elite Terminal Pro requires a wider viewport for professional analysis. Please switch to a desktop browser.</p>
     </div>
 
-    <div class="sidebar">
-        <div class="search-box">
-            <input type="text" id="search" class="search-input" placeholder="Search Markets...">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="pulse"></div> HTX ELITE PRO
         </div>
-        <div id="coin-list" class="coin-list"></div>
-    </div>
+        <div class="search-area">
+            <input type="text" id="search" class="search-input" placeholder="Search markets...">
+        </div>
+        <div id="market-list" class="market-list"></div>
+    </aside>
 
-    <script src="https://s3.tradingview.com/tv.js"></script>
+    <main class="viewport">
+        <header class="top-nav">
+            <div class="live-info">
+                <span id="target-sym">BTC/USDT</span>
+                <span id="live-price">---</span>
+            </div>
+            
+            <div class="metrics">
+                <div class="metric-group">
+                    <span class="metric-label">24h Change</span>
+                    <span id="pc" class="metric-value">--</span>
+                </div>
+                <div class="metric-group">
+                    <span class="metric-label">24h High</span>
+                    <span id="ph" class="metric-value">--</span>
+                </div>
+                <div class="metric-group">
+                    <span class="metric-label">24h Low</span>
+                    <span id="pl" class="metric-value">--</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="chart-frame">
+            <div id="tv_container"></div>
+        </section>
+    </main>
+
     <script>
-        let allCoins = [];
-        let priceWs;
+        const marketList = document.getElementById('market-list');
         const priceEl = document.getElementById('live-price');
-        const targetEl = document.getElementById('target-sym');
-        const listEl = document.getElementById('coin-list');
+        let allMarkets = [];
+        let socket;
 
-        // 1. WebSocket for Tickers (No CORS)
-        const listWs = new WebSocket("wss://api.huobi.pro/ws");
-        listWs.onopen = () => listWs.send(JSON.stringify({ "sub": "market.tickers", "id": "list" }));
-        listWs.onmessage = (e) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-                const res = JSON.parse(pako.ungzip(new Uint8Array(reader.result), { to: 'string' }));
-                if (res.data && allCoins.length === 0) {
-                    allCoins = res.data.filter(x => x.symbol.endsWith('usdt'));
-                    renderList(allCoins);
-                    switchCoin('btcusdt');
-                    listWs.close();
-                }
-            };
-            reader.readAsArrayBuffer(e.data);
+        function initChart(symbol) {
+            new TradingView.widget({
+                "autosize": true,
+                "symbol": `HUOBI:${symbol.toUpperCase()}`,
+                "interval": "60",
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "1",
+                "locale": "en",
+                "enable_publishing": false,
+                "hide_side_toolbar": false,
+                "allow_symbol_change": true,
+                "container_id": "tv_container",
+                "backgroundColor": "#000000",
+                "gridColor": "rgba(42, 46, 57, 0.06)",
+                "details": false,
+                "hotlist": false,
+                "calendar": false,
+                "show_popup_button": true,
+                "popup_width": "1000",
+                "popup_height": "650"
+            });
+        }
+
+        // Fetch initial market data
+        const bootSocket = new WebSocket("wss://api.huobi.pro/ws");
+        bootSocket.onopen = () => bootSocket.send(JSON.stringify({ "sub": "market.tickers", "id": "init" }));
+        bootSocket.onmessage = async (e) => {
+            const text = pako.ungzip(await e.data.arrayBuffer(), { to: 'string' });
+            const res = JSON.parse(text);
+            
+            if (res.data && allMarkets.length === 0) {
+                allMarkets = res.data.filter(x => x.symbol.endsWith('usdt'));
+                renderMarkets(allMarkets);
+                switchMarket('btcusdt');
+                bootSocket.close();
+            }
         };
 
-        function renderList(data) {
-            listEl.innerHTML = '';
-            data.forEach(c => {
+        function renderMarkets(data) {
+            marketList.innerHTML = '';
+            data.slice(0, 100).forEach(m => {
                 const row = document.createElement('div');
-                row.className = 'coin-item';
-                row.innerHTML = `<b>${c.symbol.replace('usdt','').toUpperCase()}</b><i data-lucide="chevron-right" style="width:14px;color:#222"></i>`;
-                row.onclick = () => {
-                    switchCoin(c.symbol);
-                    if(window.innerWidth <= 768) window.scrollTo(0,0);
-                };
-                listEl.appendChild(row);
+                row.className = 'market-item';
+                const base = m.symbol.replace('usdt', '').toUpperCase();
+                row.innerHTML = `<span>${base}</span><span style="color:var(--muted)">USDT</span>`;
+                row.onclick = () => switchMarket(m.symbol);
+                marketList.appendChild(row);
             });
-            lucide.createIcons();
+        }
+
+        async function switchMarket(sym) {
+            if (socket) socket.close();
+            document.getElementById('target-sym').innerText = sym.toUpperCase();
+            initChart(sym);
+
+            socket = new WebSocket("wss://api.huobi.pro/ws");
+            let lastPrice = 0;
+
+            socket.onopen = () => socket.send(JSON.stringify({ "sub": `market.${sym}.detail`, "id": "detail" }));
+            socket.onmessage = async (e) => {
+                const text = pako.ungzip(await e.data.arrayBuffer(), { to: 'string' });
+                const data = JSON.parse(text);
+
+                if (data.ping) socket.send(JSON.stringify({ pong: data.ping }));
+                if (data.tick) {
+                    const t = data.tick;
+                    priceEl.innerText = t.close.toFixed(2);
+                    priceEl.className = t.close >= lastPrice ? 'up' : 'down';
+                    
+                    const change = ((t.close - t.open) / t.open * 100).toFixed(2);
+                    document.getElementById('pc').innerText = `${change > 0 ? '+' : ''}${change}%`;
+                    document.getElementById('pc').className = `metric-value ${change >= 0 ? 'up' : 'down'}`;
+                    document.getElementById('ph').innerText = t.high.toFixed(2);
+                    document.getElementById('pl').innerText = t.low.toFixed(2);
+                    
+                    lastPrice = t.close;
+                }
+            };
         }
 
         document.getElementById('search').oninput = (e) => {
             const val = e.target.value.toLowerCase();
-            renderList(allCoins.filter(p => p.symbol.includes(val)));
+            renderMarkets(allMarkets.filter(p => p.symbol.includes(val)));
         };
 
-        function switchCoin(sym) {
-            if (priceWs) priceWs.close();
-            targetEl.innerText = sym.toUpperCase();
-            
-            // TradingView Widget Responsive
-            new TradingView.widget({
-                "autosize": true,
-                "symbol": `HUOBI:${sym.toUpperCase()}`,
-                "interval": "60",
-                "theme": "dark",
-                "style": "1",
-                "locale": "en",
-                "container_id": "tv-chart",
-                "hide_top_toolbar": window.innerWidth < 768,
-                "hide_legend": window.innerWidth < 768,
-                "backgroundColor": "#000000",
-                "gridColor": "#111111"
-            });
-
-            priceWs = new WebSocket("wss://api.huobi.pro/ws");
-            let lastP = 0;
-            priceWs.onopen = () => priceWs.send(JSON.stringify({ "sub": `market.${sym}.detail`, "id": "p" }));
-            priceWs.onmessage = (e) => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const d = JSON.parse(pako.ungzip(new Uint8Array(reader.result), { to: 'string' }));
-                    if (d.tick) {
-                        const t = d.tick;
-                        priceEl.innerText = t.close.toLocaleString();
-                        priceEl.className = `price ${t.close >= lastP ? 'up' : 'down'}`;
-                        
-                        const chg = ((t.close - t.open) / t.open * 100).toFixed(2);
-                        document.getElementById('pc').innerText = `${chg}%`;
-                        document.getElementById('pc').className = chg >= 0 ? 'up' : 'down';
-                        document.getElementById('ph').innerText = t.high.toLocaleString();
-                        document.getElementById('pl').innerText = t.low.toLocaleString();
-                        lastP = t.close;
-                    }
-                };
-                reader.readAsArrayBuffer(e.data);
-            };
-        }
+        // Initialize Icons
+        lucide.createIcons();
     </script>
 </body>
 </html>
