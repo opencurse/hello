@@ -3,169 +3,279 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTX Elite Terminal Pro</title>
+    <title>HTX Elite Pro | Institutional Terminal</title>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@500;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root { --bg: #000; --sidebar: #050505; --border: #1a1a1a; --text: #fff; --muted: #666; --green: #10b981; --red: #ef4444; }
-        * { box-sizing: border-box; }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
-        /* Sidebar */
-        .sidebar { width: 300px; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--sidebar); z-index: 10; }
-        .search-container { padding: 20px; border-bottom: 1px solid var(--border); }
-        .search-bar { width: 100%; background: #0f0f0f; border: 1px solid var(--border); padding: 10px 12px; border-radius: 6px; color: white; font-size: 13px; outline: none; }
+    <style>
+        :root {
+            --bg: #000000;
+            --sidebar: #050505;
+            --surface: #0a0a0a;
+            --border: #161616;
+            --text: #ffffff;
+            --muted: #52525b;
+            --green: #00ff9d;
+            --red: #ff3b3b;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+        body { 
+            background: var(--bg); 
+            color: var(--text); 
+            font-family: 'Inter', sans-serif; 
+            height: 100vh; 
+            display: flex; 
+            overflow: hidden; 
+        }
+
+        /* Desktop Gatekeeper */
+        #mobile-block {
+            display: none; position: fixed; inset: 0; background: #000; z-index: 9999;
+            flex-direction: column; align-items: center; justify-content: center; text-align: center;
+        }
+        @media (max-width: 1200px) { #mobile-block { display: flex; } }
+
+        /* Left Sidebar: Market Selection */
+        .sidebar { width: 280px; border-right: 1px solid var(--border); background: var(--sidebar); display: flex; flex-direction: column; }
+        .sidebar-header { padding: 25px 20px; border-bottom: 1px solid var(--border); }
+        .brand-meta { font-size: 10px; letter-spacing: 3px; color: var(--muted); font-weight: 800; display: flex; align-items: center; gap: 8px; margin-bottom: 15px; }
+        .status-dot { width: 5px; height: 5px; background: var(--green); border-radius: 50%; box-shadow: 0 0 8px var(--green); }
+        
+        .search-box { background: #0f0f0f; border: 1px solid #1a1a1a; border-radius: 6px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
+        .search-box input { background: transparent; border: none; color: white; font-size: 12px; width: 100%; font-family: var(--font-mono); }
+
         .coin-list { flex: 1; overflow-y: auto; }
-        .coin-item { padding: 12px 20px; border-bottom: 1px solid #111; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
-        .coin-item:hover { background: #0f0f0f; }
+        .coin-row { 
+            padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer; border-bottom: 1px solid #080808; transition: 0.1s;
+        }
+        .coin-row:hover { background: #0a0a0a; }
+        .coin-row .sym { font-family: var(--font-mono); font-size: 13px; font-weight: 500; }
+        .coin-row .quote { color: var(--muted); font-size: 10px; font-weight: 700; margin-left: 4px; }
 
         /* Main Content */
-        .main { flex: 1; display: flex; flex-direction: column; background: #000; }
+        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
         
-        /* Header/Ticker Bar */
-        .ticker-bar { height: 80px; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 30px; justify-content: space-between; }
-        .active-info { display: flex; align-items: center; gap: 20px; }
-        .active-sym { font-weight: 700; font-size: 18px; letter-spacing: 1px; }
-        .price-now { font-family: 'Geist Mono', monospace; font-size: 28px; font-weight: 700; transition: 0.1s; }
-        .stats-24h { display: flex; gap: 25px; font-size: 12px; }
-        .stat-box span { color: var(--muted); display: block; margin-bottom: 4px; }
+        /* Modern Wide Header */
+        .top-ribbon { 
+            height: 90px; border-bottom: 1px solid var(--border); background: #020202;
+            display: flex; align-items: center; padding: 0 40px; justify-content: space-between;
+        }
+        .asset-info { display: flex; align-items: baseline; gap: 25px; }
+        .asset-name { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+        #live-p { font-family: var(--font-mono); font-size: 32px; font-weight: 700; min-width: 180px; }
 
-        /* Chart Area */
-        .chart-container { flex: 1; position: relative; width: 100%; background: #000; }
-        #tradingview_chart { height: 100% !important; width: 100% !important; }
+        .stats-row { display: flex; gap: 50px; }
+        .stat-item { display: flex; flex-direction: column; gap: 4px; }
+        .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; }
+        .stat-val { font-family: var(--font-mono); font-size: 14px; font-weight: 500; }
+
+        .workspace { flex: 1; display: flex; }
+        .chart-wrap { flex: 1; background: #000; border-right: 1px solid var(--border); }
+
+        /* Orderbook & Trades Sidepanel */
+        .data-panel { width: 320px; display: flex; flex-direction: column; background: var(--sidebar); }
+        .panel-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        .panel-title { padding: 12px 15px; font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 1px; border-bottom: 1px solid var(--border); }
+        
+        .data-grid { flex: 1; overflow: hidden; font-family: var(--font-mono); font-size: 11px; }
+        .row { display: grid; grid-template-columns: 1.2fr 1fr 1fr; padding: 4px 15px; position: relative; }
+        .bar { position: absolute; right: 0; top: 1px; bottom: 1px; opacity: 0.12; }
+
+        #trade-history { overflow-y: hidden; }
 
         .up { color: var(--green); }
         .down { color: var(--red); }
-        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar { width: 3px; }
         ::-webkit-scrollbar-thumb { background: #222; }
     </style>
 </head>
 <body>
 
-    <div class="sidebar">
-        <div class="search-container">
-            <div style="font-size: 11px; color: var(--muted); margin-bottom: 12px; letter-spacing: 1px; display: flex; align-items: center; gap: 6px;">
-                <i data-lucide="bar-chart-3" style="width:14px"></i> MARKET SELECTION
+    <div id="mobile-block">
+        <i data-lucide="shield-alert" style="width:40px;height:40px;color:var(--red)"></i>
+        <h2 style="margin-top:20px; letter-spacing:2px">ACCESS DENIED</h2>
+        <p style="color:var(--muted); font-size:12px; margin-top:10px">TERMINAL IS OPTIMIZED FOR 4K/DESKTOP ENVIRONMENTS ONLY</p>
+    </div>
+
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-meta"><div class="status-dot"></div> ELITE TERMINAL v3</div>
+            <div class="search-box">
+                <i data-lucide="search" style="width:14px;color:var(--muted)"></i>
+                <input type="text" id="mSearch" placeholder="SEARCH PAIRS...">
             </div>
-            <input type="text" id="search" class="search-bar" placeholder="Search pairs...">
         </div>
         <div id="coin-list" class="coin-list"></div>
-    </div>
+    </aside>
 
-    <div class="main">
-        <div class="ticker-bar">
-            <div class="active-info">
-                <div class="active-sym" id="target-sym">BTC/USDT</div>
-                <div class="price-now" id="live-price">0.00</div>
+    <main class="main">
+        <header class="top-ribbon">
+            <div class="asset-info">
+                <div class="asset-name" id="pair-label">BTC/USDT</div>
+                <div id="live-p">0.00000000</div>
             </div>
-            <div class="stats-24h">
-                <div class="stat-box"><span>24h Change</span><b id="pc" class="up">--</b></div>
-                <div class="stat-box"><span>High</span><b id="ph">--</b></div>
-                <div class="stat-box"><span>Low</span><b id="pl">--</b></div>
+            
+            <div class="stats-row">
+                <div class="stat-item"><span class="stat-label">24h Change</span><span id="s-change" class="stat-val">--</span></div>
+                <div class="stat-item"><span class="stat-label">24h High</span><span id="s-high" class="stat-val">--</span></div>
+                <div class="stat-item"><span class="stat-label">24h Low</span><span id="s-low" class="stat-val">--</span></div>
             </div>
-        </div>
-        
-        <div class="chart-container">
-            <div id="tradingview_chart"></div>
-        </div>
-    </div>
+        </header>
 
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+        <section class="workspace">
+            <div class="chart-wrap" id="tv_mount"></div>
+            
+            <aside class="data-panel">
+                <div class="panel-section" style="border-bottom: 1px solid var(--border);">
+                    <div class="panel-title">ORDER BOOK</div>
+                    <div class="data-grid" id="asks" style="display:flex; flex-direction:column-reverse; justify-content:flex-start"></div>
+                    <div style="padding: 12px 15px; font-family:var(--font-mono); font-weight:700; background:#080808" id="mid-p">---</div>
+                    <div class="data-grid" id="bids"></div>
+                </div>
+
+                <div class="panel-section">
+                    <div class="panel-title">RECENT TRADES</div>
+                    <div class="data-grid" id="trade-history"></div>
+                </div>
+            </aside>
+        </section>
+    </main>
+
     <script>
-        const listEl = document.getElementById('coin-list');
-        const priceEl = document.getElementById('live-price');
-        const targetEl = document.getElementById('target-sym');
-        
-        let allPairs = [];
-        let activeWs;
+        let allPairs = [], activeWs, dataWs;
 
-        // Load Chart
-        function loadChart(symbol) {
+        const f = (v, d=2) => Number(v).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: 8 });
+
+        function startChart(symbol) {
             new TradingView.widget({
                 "autosize": true,
                 "symbol": `HUOBI:${symbol.toUpperCase()}`,
                 "interval": "60",
-                "timezone": "Etc/UTC",
                 "theme": "dark",
                 "style": "1",
-                "locale": "en",
-                "toolbar_bg": "#000000",
-                "enable_publishing": false,
-                "hide_top_toolbar": false,
-                "hide_legend": false,
-                "save_image": false,
-                "container_id": "tradingview_chart",
-                "backgroundColor": "rgba(0, 0, 0, 1)",
-                "gridColor": "rgba(26, 26, 26, 1)",
+                "container_id": "tv_mount",
+                "hide_top_toolbar": true,
+                "backgroundColor": "#000000",
+                "gridColor": "rgba(0,0,0,0)",
+                "disabled_features": ["header_widget", "volume_force_overlay"], // Removes forced volume
+                "enabled_features": ["hide_left_toolbar_by_default"],
+                "overrides": { "mainSeriesProperties.showPriceLine": true, "paneProperties.background": "#000000" }
             });
         }
 
-        // Init List via WS
-        const initWs = new WebSocket("wss://api.huobi.pro/ws");
-        initWs.onopen = () => initWs.send(JSON.stringify({ "sub": "market.tickers", "id": "list" }));
-        initWs.onmessage = (e) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-                const res = JSON.parse(pako.ungzip(new Uint8Array(reader.result), { to: 'string' }));
-                if (res.data && allPairs.length === 0) {
-                    allPairs = res.data.filter(x => x.symbol.endsWith('usdt'));
-                    renderList(allPairs);
-                    startTerminal('btcusdt');
-                    initWs.close();
-                }
-            };
-            reader.readAsArrayBuffer(e.data);
+        const boot = new WebSocket("wss://api.huobi.pro/ws");
+        boot.onopen = () => boot.send(JSON.stringify({ "sub": "market.tickers", "id": "all" }));
+        boot.onmessage = async (e) => {
+            const raw = JSON.parse(pako.ungzip(await e.data.arrayBuffer(), { to: 'string' }));
+            if (raw.data && allPairs.length === 0) {
+                allPairs = raw.data.filter(x => x.symbol.endsWith('usdt') || x.symbol.endsWith('usdc'));
+                renderPairs(allPairs);
+                load('btcusdt');
+                boot.close();
+            }
         };
 
-        function renderList(items) {
-            listEl.innerHTML = '';
-            items.forEach(c => {
+        function renderPairs(data) {
+            const container = document.getElementById('coin-list');
+            container.innerHTML = '';
+            data.slice(0, 150).forEach(p => {
                 const div = document.createElement('div');
-                div.className = 'coin-item';
-                div.innerHTML = `<b>${c.symbol.replace('usdt','').toUpperCase()}</b><i data-lucide="chevron-right" style="width:12px;color:#222"></i>`;
-                div.onclick = () => startTerminal(c.symbol);
-                listEl.appendChild(div);
+                div.className = 'coin-row';
+                const quote = p.symbol.endsWith('usdc') ? 'USDC' : 'USDT';
+                const base = p.symbol.replace(quote.toLowerCase(), '').toUpperCase();
+                div.innerHTML = `<span class="sym">${base}<span class="quote">${quote}</span></span><i data-lucide="chevron-right" style="width:12px;color:#111"></i>`;
+                div.onclick = () => load(p.symbol);
+                container.appendChild(div);
             });
             lucide.createIcons();
         }
 
-        document.getElementById('search').oninput = (e) => {
-            const val = e.target.value.toLowerCase();
-            renderList(allPairs.filter(p => p.symbol.includes(val)));
-        };
-
-        function startTerminal(sym) {
+        function load(sym) {
             if (activeWs) activeWs.close();
-            targetEl.innerText = sym.toUpperCase();
-            loadChart(sym);
+            if (dataWs) dataWs.close();
+            
+            document.getElementById('pair-label').innerText = sym.toUpperCase().replace('USDT',' / USDT').replace('USDC',' / USDC');
+            startChart(sym);
 
             activeWs = new WebSocket("wss://api.huobi.pro/ws");
-            let lastP = 0;
+            activeWs.onopen = () => {
+                activeWs.send(JSON.stringify({ "sub": `market.${sym}.detail`, "id": "detail" }));
+                activeWs.send(JSON.stringify({ "sub": `market.${sym}.trade.detail`, "id": "trades" }));
+            };
 
-            activeWs.onopen = () => activeWs.send(JSON.stringify({ "sub": `market.${sym}.detail`, "id": "detail" }));
-            activeWs.onmessage = (e) => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const data = JSON.parse(pako.ungzip(new Uint8Array(reader.result), { to: 'string' }));
-                    if (data.ping) activeWs.send(JSON.stringify({ pong: data.ping }));
-                    if (data.tick) {
-                        const t = data.tick;
-                        priceEl.innerText = t.close.toLocaleString();
-                        priceEl.className = t.close > lastP ? "price-now up" : "price-now down";
-                        
-                        // 24h Stats
-                        const change = ((t.close - t.open) / t.open * 100).toFixed(2);
-                        document.getElementById('pc').innerText = `${change}%`;
-                        document.getElementById('pc').className = change >= 0 ? "up" : "down";
-                        document.getElementById('ph').innerText = t.high.toLocaleString();
-                        document.getElementById('pl').innerText = t.low.toLocaleString();
-                        lastP = t.close;
-                    }
-                };
-                reader.readAsArrayBuffer(e.data);
+            activeWs.onmessage = async (e) => {
+                const res = JSON.parse(pako.ungzip(await e.data.arrayBuffer(), { to: 'string' }));
+                if (res.ping) activeWs.send(JSON.stringify({ pong: res.ping }));
+                
+                if (res.ch?.includes('detail') && res.tick) {
+                    const t = res.tick;
+                    const pEl = document.getElementById('live-p');
+                    const last = parseFloat(pEl.innerText.replace(/,/g,''));
+                    pEl.innerText = f(t.close, 4);
+                    pEl.className = t.close >= last ? 'up' : 'down';
+                    
+                    const chg = ((t.close - t.open) / t.open * 100).toFixed(2);
+                    document.getElementById('s-change').innerText = `${chg}%`;
+                    document.getElementById('s-change').className = `stat-val ${chg >= 0 ? 'up' : 'down'}`;
+                    document.getElementById('s-high').innerText = f(t.high, 2);
+                    document.getElementById('s-low').innerText = f(t.low, 2);
+                    document.getElementById('mid-p').innerText = f(t.close, 4);
+                }
+
+                if (res.ch?.includes('trade.detail') && res.tick) {
+                    updateTrades(res.tick.data);
+                }
+            };
+
+            dataWs = new WebSocket("wss://api.huobi.pro/ws");
+            dataWs.onopen = () => dataWs.send(JSON.stringify({ "sub": `market.${sym}.depth.step0`, "id": "ob" }));
+            dataWs.onmessage = async (e) => {
+                const res = JSON.parse(pako.ungzip(await e.data.arrayBuffer(), { to: 'string' }));
+                if (res.tick) updateOB(res.tick);
             };
         }
+
+        function updateOB(tick) {
+            const draw = (id, list, color) => {
+                const el = document.getElementById(id);
+                el.innerHTML = '';
+                const max = Math.max(...list.map(x => x[1]));
+                list.slice(0, 12).forEach(i => {
+                    const row = document.createElement('div');
+                    row.className = 'row';
+                    row.innerHTML = `<span class="${color}">${f(i[0], 4)}</span><span>${i[1].toFixed(4)}</span><span style="text-align:right;color:var(--muted)">${(i[0]*i[1]).toFixed(2)}</span>
+                                     <div class="bar" style="width:${(i[1]/max*100)}%; background:${color === 'up' ? 'var(--green)' : 'var(--red)'}"></div>`;
+                    el.appendChild(row);
+                });
+            };
+            draw('asks', tick.asks, 'down');
+            draw('bids', tick.bids, 'up');
+        }
+
+        function updateTrades(data) {
+            const el = document.getElementById('trade-history');
+            data.forEach(t => {
+                const row = document.createElement('div');
+                row.className = 'row';
+                const time = new Date(t.ts).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                row.innerHTML = `<span class="${t.direction === 'buy' ? 'up' : 'down'}">${f(t.price, 4)}</span><span>${t.amount.toFixed(4)}</span><span style="text-align:right;color:var(--muted)">${time}</span>`;
+                el.prepend(row);
+                if (el.children.length > 25) el.lastChild.remove();
+            });
+        }
+
+        document.getElementById('mSearch').oninput = (e) => {
+            const val = e.target.value.toLowerCase();
+            renderPairs(allPairs.filter(p => p.symbol.includes(val)));
+        };
+
+        lucide.createIcons();
     </script>
 </body>
 </html>
