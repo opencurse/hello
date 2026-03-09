@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTX Live Price Tracker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0b0e11; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { text-align: center; border: 1px solid #333; padding: 40px; border-radius: 15px; background: #181a20; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .symbol { font-size: 1.5rem; color: #848e9c; margin-bottom: 10px; }
+        .price { font-size: 3.5rem; font-weight: bold; transition: color 0.3s ease; }
+        .up { color: #0ecb81; } /* Green */
+        .down { color: #f6465d; } /* Red */
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="symbol">HTX: BTC/USDT</div>
+        <div id="price" class="price">Connecting...</div>
+    </div>
+
+    <script>
+        const priceEl = document.getElementById('price');
+        const wssUrl = "wss://api.huobi.pro/ws";
+        let lastPrice = 0;
+
+        const socket = new WebSocket(wssUrl);
+
+        socket.onopen = () => {
+            console.log("Connected to HTX WebSocket");
+            // Market detail subscribe karne ka message
+            const subMsg = JSON.stringify({
+                "sub": "market.btcusdt.detail",
+                "id": "id1"
+            });
+            socket.send(subMsg);
+        };
+
+        socket.onmessage = (event) => {
+            // HTX data Gzip format mein bhejta hai, ise decompress karna hoga
+            const reader = new FileReader();
+            reader.onload = () => {
+                const charData = pako.ungzip(new Uint8Array(reader.result), { to: 'string' });
+                const data = JSON.parse(charData);
+
+                // Heartbeat (Ping/Pong) handle karna zaroori hai connection banaye rakhne ke liye
+                if (data.ping) {
+                    socket.send(JSON.stringify({ pong: data.ping }));
+                }
+
+                // Price update handle karna
+                if (data.tick) {
+                    const currentPrice = data.tick.close;
+                    priceEl.innerText = `$${currentPrice.toFixed(2)}`;
+
+                    // Price color change (Green/Red)
+                    if (currentPrice > lastPrice) {
+                        priceEl.className = 'price up';
+                    } else if (currentPrice < lastPrice) {
+                        priceEl.className = 'price down';
+                    }
+                    lastPrice = currentPrice;
+                }
+            };
+            reader.readAsArrayBuffer(event.data);
+        };
+
+        socket.onclose = () => console.log("WebSocket Connection Closed");
+        socket.onerror = (err) => console.error("WebSocket Error:", err);
+    </script>
+</body>
+</html>
